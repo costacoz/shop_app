@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../widgets/snackbar_simple.dart';
 import '../models/http_exception.dart';
 import '../providers/products.dart';
 import '../screens/edit_product_screen.dart';
@@ -37,17 +38,10 @@ class UserProductItem extends StatelessWidget {
                 try {
                   await Provider.of<Products>(context, listen: false).removeProduct(id);
                 } on HttpException catch (_) {
-                  scaffoldMessenger.showSnackBar(SnackBar(
-                    content: Row(
-                      children: [
-                        Icon(
-                          Icons.error,
-                          color: Colors.red,
-                        ),
-                        SizedBox(width: 5),
-                        Text('Deleting failed!')
-                      ],
-                    ),
+                  scaffoldMessenger.showSnackBar(SnackBarSimple(
+                    iconData: Icons.error,
+                    color: Colors.red,
+                    text: 'Error occured! Action unsuccessful.',
                   ));
                 }
               },

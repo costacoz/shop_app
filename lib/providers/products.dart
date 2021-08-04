@@ -3,8 +3,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shop_flutter_app/helpers/global_config.dart';
-import '../models/http_exception.dart';
 
+import '../models/http_exception.dart';
 import 'product.dart';
 
 /// Important note!
@@ -17,7 +17,12 @@ import 'product.dart';
 /// implements ChangeNotifier mixin and do changes in that separate file.
 
 class Products with ChangeNotifier {
-  List<Product> _items = [];
+  final String? authToken;
+  final String? _userId;
+
+  List<Product> _items;
+
+  Products([this.authToken, this._userId, this._items = const []]);
 
   /// Should always return copy of data, to avoid modifying it directly.
   /// Otherwise notifyListeners() method wouldn't be able to notify about changes in the state.
@@ -31,7 +36,7 @@ class Products with ChangeNotifier {
 
   /// "Optimistic updating" approach. For better user experience.
   Future<void> removeProduct(id) async {
-    final _uriProduct = GlobalConfig.getUriByProductId(id);
+    final _uriProduct = GlobalConfig.getUriByProductId(id, authToken);
     final existingProductIndex = _items.indexWhere((product) => product.id == id);
     dynamic existingProduct = _items[existingProductIndex];
 
@@ -42,12 +47,11 @@ class Products with ChangeNotifier {
     /// 2. Then send request.
     final response = await http.delete(_uriProduct);
 
-    /// http package doesn't throw error for DELETE method, only for GET/POST.
+    /// http package doesn't throw error for DELETE and PATCH methods, only for GET/POST.
     /// To check whether error occured, need to check statusCode in successful .then() block!
     /// To see how it works, remove '.json' part from getUriPerProductId() method.
     if (response.statusCode >= 400) {
       // 3. Re-add it, if some error happened.
-      await Future.delayed(const Duration(seconds: 10));
       _items.insert(existingProductIndex, existingProduct);
       notifyListeners();
       throw HttpException('Delete method failed', statusCode: response.statusCode, uri: _uriProduct);
@@ -57,10 +61,35 @@ class Products with ChangeNotifier {
     existingProduct = null;
   }
 
-  Future<void> fetchAndSetProducts() async {
+  Future<void> fetchAndSetProducts([bool filterByUser = false]) async {
     try {
-      final response = await http.get(GlobalConfig.productsUri);
-      final extractedData = json.decode(response.body) as Map<String, dynamic>;
+      if (authToken == null) {
+        print('fetchAndSetProducts: authToken is null, cannot fetch products!');
+        return;
+      }
+      final Map<String, String> headers = {'Authorization': 'Bearer $authToken'};
+
+      Map filterByUserQueryParams = filterByUser
+          ? {
+              "orderBy": "creatorId",
+              "equalTo": _userId,
+            }.map((key, value) => MapEntry(key, json.encode(value!)))
+          : {};
+
+      final response = await http.get(
+        GlobalConfig.getProductsUri(authToken, filterByUserQueryParams),
+        headers: headers,
+      );
+      final decodedResponse = json.decode(response.body);
+      if (decodedResponse == null) return;
+      if (decodedResponse['error'] != null) {
+        throw HttpException('Unauthorized! Error: ${decodedResponse['error']}');
+      }
+
+      final favoritesResponse = await http.get(GlobalConfig.getUriUserFavorites(authToken, _userId));
+      final favoritesResponseDecoded = json.decode(favoritesResponse.body);
+
+      final Map<String, dynamic> extractedData = decodedResponse;
       final List<Product> loadedProducts = [];
       extractedData.forEach((productId, productData) {
         loadedProducts.add(Product(
@@ -69,7 +98,7 @@ class Products with ChangeNotifier {
           description: productData['description'],
           imageUrl: productData['imageUrl'],
           price: productData['price'],
-          isFavorite: productData['isFavorite'],
+          isFavorite: favoritesResponseDecoded == null ? false : favoritesResponseDecoded[productId] ?? false,
         ));
       });
       _items = loadedProducts;
@@ -85,11 +114,15 @@ class Products with ChangeNotifier {
       'description': product.description,
       'imageUrl': product.imageUrl,
       'price': product.price,
-      'isFavorite': product.isFavorite,
+      'creatorId': _userId,
     });
 
     try {
-      final _response = await http.post(GlobalConfig.productsUri, body: _json);
+      if (authToken == null) {
+        print('authToken is null, add product!');
+        return;
+      }
+      final _response = await http.post(GlobalConfig.getProductsUri(authToken), body: _json);
       final _productWithId = Product(
         id: json.decode(_response.body)["name"],
         price: product.price,
@@ -107,7 +140,7 @@ class Products with ChangeNotifier {
   Future<void> updateProduct(String id, Product updatedProduct) async {
     final productIndex = _items.indexWhere((product) => product.id == id);
     if (productIndex >= 0) {
-      final _uriProduct = GlobalConfig.getUriByProductId(id);
+      final _uriProduct = GlobalConfig.getUriByProductId(id, authToken);
       try {
         await http.patch(_uriProduct,
             body: json.encode({

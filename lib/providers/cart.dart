@@ -25,6 +25,10 @@ class Cart with ChangeNotifier {
     return _items.length;
   }
 
+  bool get isEmpty {
+    return _items.isEmpty;
+  }
+
   double get totalAmount {
     double total = 0.0;
     _items.forEach((_, cartItem) {

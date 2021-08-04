@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shop_flutter_app/providers/auth.dart';
 import 'package:shop_flutter_app/providers/cart.dart';
-import 'package:shop_flutter_app/providers/products.dart';
-import '../screens/product_detail_screen.dart';
+import 'package:shop_flutter_app/widgets/snackbar_simple.dart';
+
 import '../providers/product.dart';
+import '../screens/product_detail_screen.dart';
 
 class ProductItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final product = Provider.of<Product>(context, listen: false);
     final cart = Provider.of<Cart>(context, listen: false);
+    final auth = Provider.of<Auth>(context, listen: false);
     return ClipRRect(
       borderRadius: BorderRadius.circular(15),
       child: GridTile(
@@ -26,7 +29,14 @@ class ProductItem extends StatelessWidget {
             builder: (_, Product productWithListener, unbuildableChild) => IconButton(
               icon: Icon(productWithListener.isFavorite ? Icons.favorite : Icons.favorite_border),
               color: Theme.of(context).accentColor,
-              onPressed: () => productWithListener.toggleFavorite(),
+              onPressed: () => productWithListener.toggleFavorite(auth.token, auth.userId).catchError((e) {
+                print(e);
+                ScaffoldMessenger.of(context).showSnackBar(SnackBarSimple(
+                  iconData: Icons.error,
+                  color: Colors.red,
+                  text: 'Error occured! @Action unsuccessful.',
+                ));
+              }),
             ),
             child: SizedBox(), // this child will be inserted into the child of builder (unbuildableChild above).
             // It is intended to not be rebuild upon Provider model's (Product) changes - for optimization purposes.

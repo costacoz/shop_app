@@ -22,70 +22,68 @@ class ProductsOverviewScreen extends StatefulWidget {
 
 class _ProductsOverviewScreenState extends State<ProductsOverviewScreen> {
   bool _showOnlyFavorites = false;
-  bool _areProductsFetched = false;
-  bool _isLoadingProducts = false;
-
-  void setLoadingProducts(bool value) {
-    setState(() {
-      _isLoadingProducts = value;
-    });
-  }
+  late Future future;
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (!_areProductsFetched) {
-      setLoadingProducts(true);
-      Provider.of<Products>(context, listen: false).fetchAndSetProducts().then((_) {
-        setLoadingProducts(false);
-      });
-
-      _areProductsFetched = true;
-    }
+  void initState() {
+    super.initState();
+    future = Provider.of<Products>(context, listen: false).fetchAndSetProducts();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Products'),
-        actions: [
-          PopupMenuButton(
-            onSelected: (FilterOptions selectedValue) {
-              setState(() {
-                if (selectedValue == FilterOptions.Favorites) {
-                  _showOnlyFavorites = true;
-                } else {
-                  _showOnlyFavorites = false;
-                }
-              });
-            },
-            itemBuilder: (_) => [
-              PopupMenuItem(
-                child: Text('Only Favorites'),
-                value: FilterOptions.Favorites,
-              ),
-              PopupMenuItem(
-                child: Text('Show All'),
-                value: FilterOptions.All,
-              ),
-            ],
-            icon: Icon(Icons.more_vert),
-          ),
-          Consumer<Cart>(
-            builder: (_, Cart cart, ch) => Badge(
-              child: ch as Widget,
-              value: cart.itemCount.toString(),
+        appBar: AppBar(
+          title: Text('Products'),
+          actions: [
+            PopupMenuButton(
+              onSelected: (FilterOptions selectedValue) {
+                setState(() {
+                  if (selectedValue == FilterOptions.Favorites) {
+                    _showOnlyFavorites = true;
+                  } else {
+                    _showOnlyFavorites = false;
+                  }
+                });
+              },
+              itemBuilder: (_) => [
+                PopupMenuItem(
+                  child: Text('Only Favorites'),
+                  value: FilterOptions.Favorites,
+                ),
+                PopupMenuItem(
+                  child: Text('Show All'),
+                  value: FilterOptions.All,
+                ),
+              ],
+              icon: Icon(Icons.more_vert),
             ),
-            child: IconButton(
-              icon: Icon(Icons.shopping_cart),
-              onPressed: () => Navigator.of(context).pushNamed(CartScreen.routeName),
-            ),
-          )
-        ],
-      ),
-      drawer: MainDrawer(),
-      body: _isLoadingProducts ? Center(child: CircularProgressIndicator()) : ProductsGrid(_showOnlyFavorites),
-    );
+            Consumer<Cart>(
+              builder: (_, Cart cart, ch) => Badge(
+                child: ch as Widget,
+                value: cart.itemCount.toString(),
+              ),
+              child: IconButton(
+                icon: Icon(Icons.shopping_cart),
+                onPressed: () => Navigator.of(context).pushNamed(CartScreen.routeName),
+              ),
+            )
+          ],
+        ),
+        drawer: MainDrawer(),
+        body: FutureBuilder(
+          future: future,
+          builder: (ctx, dataSnapshot) {
+            if (dataSnapshot.connectionState == ConnectionState.waiting) {
+              return Center(child: CircularProgressIndicator());
+            } else {
+              if (dataSnapshot.hasError) {
+                print(dataSnapshot.error);
+                return Center(child: Text('Service is not available! Please, check your connection.'));
+              }
+              return ProductsGrid(_showOnlyFavorites);
+            }
+          },
+        ));
   }
 }
