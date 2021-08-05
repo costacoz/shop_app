@@ -18,9 +18,13 @@ class ProductItem extends StatelessWidget {
       child: GridTile(
         child: GestureDetector(
           onTap: () => Navigator.of(context).pushNamed(ProductDetailScreen.routeName, arguments: product.id),
-          child: Image.network(
-            product.imageUrl,
-            fit: BoxFit.cover,
+          child: Hero(
+            tag: product.id,
+            child: FadeInImage(
+              placeholder: AssetImage('assets/images/product-placeholder.png'),
+              image: NetworkImage(product.imageUrl),
+              fit: BoxFit.cover,
+            ),
           ),
         ),
         footer: GridTileBar(
@@ -34,7 +38,7 @@ class ProductItem extends StatelessWidget {
                 ScaffoldMessenger.of(context).showSnackBar(SnackBarSimple(
                   iconData: Icons.error,
                   color: Colors.red,
-                  text: 'Error occured! @Action unsuccessful.',
+                  text: 'Error occured! Action unsuccessful.',
                 ));
               }),
             ),
@@ -55,9 +59,8 @@ class ProductItem extends StatelessWidget {
                     label: 'UNDO',
                     onPressed: () {
                       CartItem undoedProduct = cart.removeSingleItem(product.id);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Undo done for ${undoedProduct.title}'))
-                      );
+                      ScaffoldMessenger.of(context)
+                          .showSnackBar(SnackBar(content: Text('Undo done for ${undoedProduct.title}')));
                     },
                   ),
                 ),

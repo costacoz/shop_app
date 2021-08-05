@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shop_flutter_app/providers/auth.dart';
 import 'package:shop_flutter_app/screens/auth_screen.dart';
+import 'package:shop_flutter_app/screens/splash_screen.dart';
 
 import '/screens/orders_screen.dart';
 import 'providers/cart.dart';
@@ -42,8 +43,26 @@ class MyApp extends StatelessWidget {
             accentColor: Colors.deepOrange,
             fontFamily: 'Lato',
           ),
-          home: auth.isAuthenticated ? ProductsOverviewScreen() : AuthScreen(),
+          // home: auth.isAuthenticated ? ProductsOverviewScreen() : AuthScreen(),
+          onGenerateRoute: (routeSettings) {
+            print('routeSettings: $routeSettings');
+          },
           routes: {
+            '/': (_) => auth.isAuthenticated
+                ? ProductsOverviewScreen()
+                : FutureBuilder(
+                    future: auth.tryAutoSignin(),
+                    builder: (ctx, dataSnapshot) {
+                      if (dataSnapshot.connectionState == ConnectionState.waiting) {
+                        return SplashScreen();
+                      } else {
+                        if (dataSnapshot.hasError) {
+                          print(dataSnapshot.error);
+                        }
+                        return AuthScreen();
+                      }
+                    },
+                  ),
             ProductsOverviewScreen.routeName: (_) => ProductsOverviewScreen(),
             OrdersScreen.routeName: (_) => OrdersScreen(),
             ProductDetailScreen.routeName: (_) => ProductDetailScreen(),

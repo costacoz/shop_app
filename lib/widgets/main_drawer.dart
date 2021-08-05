@@ -25,6 +25,7 @@ class MainDrawer extends StatelessWidget {
           Divider(),
           buildDrawerItem(context, Icons.exit_to_app, "Logout", func: () {
             Navigator.of(context).pop();
+            Navigator.of(context).pushReplacementNamed('/');
             Provider.of<Auth>(context, listen: false).logout();
           }),
         ],

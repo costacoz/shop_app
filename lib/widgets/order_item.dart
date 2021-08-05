@@ -31,29 +31,30 @@ class _OrderItemState extends State<OrderItem> {
               onPressed: () => setState(() => _expanded = !_expanded),
             ),
           ),
-          if (_expanded)
-            Container(
-              padding: EdgeInsets.symmetric(horizontal: 15, vertical: 4),
-              height: min(widget.order.cartItems.length * 20 + 30, 125),
-              child: ListView.builder(
-                itemBuilder: (ctx, idx) {
-                  return Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        widget.order.cartItems[idx].title,
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-                      ),
-                      Text(
-                        '${widget.order.cartItems[idx].quantity}x \$${widget.order.cartItems[idx].price}',
-                        style: TextStyle(fontSize: 18, color: Colors.black38),
-                      )
-                    ],
-                  );
-                },
-                itemCount: widget.order.cartItems.length,
-              ),
-            )
+          AnimatedContainer(
+            duration: Duration(milliseconds: 300),
+            curve: Curves.linear,
+            padding: EdgeInsets.symmetric(horizontal: 15, vertical: 4),
+            height: _expanded ? min(widget.order.cartItems.length * 20 + 30, 125) : 0,
+            child: ListView.builder(
+              itemBuilder: (ctx, idx) {
+                return Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      widget.order.cartItems[idx].title,
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                    ),
+                    Text(
+                      '${widget.order.cartItems[idx].quantity}x \$${widget.order.cartItems[idx].price}',
+                      style: TextStyle(fontSize: 18, color: Colors.black38),
+                    )
+                  ],
+                );
+              },
+              itemCount: widget.order.cartItems.length,
+            ),
+          )
         ],
       ),
     );
